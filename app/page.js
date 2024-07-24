@@ -2,7 +2,7 @@
 import {useEffect, useState} from "react";
 import {socket} from "@/app/socket";
 
-export default function Home() {
+const Home = () => {
     const [isConnected, setIsConnected] = useState(false);
     const [name, setName] = useState("");
     const [hasJoined, setHasJoined] = useState(false);
@@ -195,3 +195,5 @@ export default function Home() {
         </div>
     );
 }
+
+export default Home;
