@@ -62,7 +62,7 @@ export default function Home() {
     const handleMessageSend = () => {
         if (message && selectedUser) {
             socket.emit("privateMessage", {recipientId: selectedUser.id, message});
-            setMessages((prev) => [...prev, {user: name, message}]);
+            setMessages((prev) => [...prev, {sender: name, recipient: selectedUser.id, message}]);
             setMessage("");
         }
     };
@@ -128,7 +128,7 @@ export default function Home() {
                                     {messages.length > 0 ? (
                                         <ul className="list-none">
                                             {messages.map((msg, index) => (
-                                                <li key={index}><strong>{msg.user}:</strong> {msg.message}</li>
+                                                <li key={index}><strong>{msg.sender}:</strong> {msg.message}</li>
                                             ))}
                                         </ul>
                                     ) : (
