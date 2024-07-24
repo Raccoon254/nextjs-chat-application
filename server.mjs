@@ -19,20 +19,20 @@ app.prepare().then(() => {
     let currentUser = null;
 
     socket.on("join", (name) => {
-      currentUser = name;
-      users.set(socket.id, name);
+      currentUser = { name, id: socket.id };
+      users.set(socket.id, currentUser);
       io.emit("onlineUsers", Array.from(users.values()));
     });
 
-    socket.on("typing", (isTyping) => {
-      if (currentUser) {
-        socket.broadcast.emit("typing", { user: currentUser, isTyping });
+    socket.on("typing", ({ recipientId, isTyping }) => {
+      if (currentUser && recipientId) {
+        io.to(recipientId).emit("typing", { user: currentUser.name, isTyping });
       }
     });
 
-    socket.on("message", (message) => {
-      if (currentUser) {
-        io.emit("message", { user: currentUser, message });
+    socket.on("privateMessage", ({ recipientId, message }) => {
+      if (currentUser && recipientId) {
+        io.to(recipientId).emit("privateMessage", { user: currentUser.name, message });
       }
     });
 
