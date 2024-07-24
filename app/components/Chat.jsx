@@ -1,76 +1,109 @@
-import React, { useState, useEffect, useRef } from 'react';
-import io from 'socket.io-client';
+"use client";
 
-const Chat = () => {
-  const [name, setName] = useState('');
-  const [message, setMessage] = useState('');
-  const [messages, setMessages] = useState<{ name: string; message: string }[]>([]);
-  const [socket, setSocket] = useState<any>(null);
+import { useEffect, useState } from "react";
+import { socket } from "@/app/components/socket";
+
+export default function Home() {
+  const [isConnected, setIsConnected] = useState(false);
+  const [name, setName] = useState("");
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState([]);
+  const [typingStatus, setTypingStatus] = useState("");
+  const [transport, setTransport] = useState("N/A");
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3000');
-    setSocket(newSocket);
+    if (socket.connected) {
+      onConnect();
+    }
+
+    function onConnect() {
+      setIsConnected(true);
+      setTransport(socket.io.engine.transport.name);
+
+      socket.io.engine.on("upgrade", (transport) => {
+        setTransport(transport.name);
+      });
+    }
+
+    function onDisconnect() {
+      setIsConnected(false);
+      setTransport("N/A");
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+    socket.on("onlineUsers", (users) => setOnlineUsers(users));
+    socket.on("message", (message) => setMessages((prev) => [...prev, message]));
+    socket.on("typing", ({ user, isTyping }) => {
+      setTypingStatus(isTyping ? `${user} is typing...` : "");
+    });
 
     return () => {
-      newSocket.disconnect();
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
     };
   }, []);
 
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('message', (msg: { name: string; message: string }) => {
-      setMessages((prevMessages) => [...prevMessages, msg]);
-    });
-  }, [socket]);
-
-  const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (message && name) {
-      socket.emit('message', { name, message });
-      setMessage('');
+  const handleJoin = () => {
+    if (name) {
+      socket.emit("join", name);
     }
   };
 
+  const handleMessageSend = () => {
+    if (message) {
+      socket.emit("message", message);
+      setMessage("");
+    }
+  };
+
+  const handleTyping = (e) => {
+    setMessage(e.target.value);
+    socket.emit("typing", e.target.value.length > 0);
+  };
+
   return (
-    <div className="p-4">
-      {!name ? (
-        <div>
+    <div>
+      <p>Status: {isConnected ? "connected" : "disconnected"}</p>
+      <p>Transport: {transport}</p>
+      {isConnected && (
+        <>
           <input
             type="text"
             placeholder="Enter your name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="border p-2 mr-2"
           />
-          <button onClick={() => setName(name)} className="bg-blue-500 text-white p-2 rounded">
-            Join Chat
-          </button>
-        </div>
-      ) : (
-        <div>
-          <div className="mb-4 h-64 overflow-y-auto border p-2">
-            {messages.map((msg, index) => (
-              <p key={index}>
-                <strong>{msg.name}:</strong> {msg.message}
-              </p>
-            ))}
+          <button onClick={handleJoin}>Join</button>
+          <div>
+            <h3>Online Users</h3>
+            <ul>
+              {onlineUsers.map((user, index) => (
+                <li key={index}>{user}</li>
+              ))}
+            </ul>
           </div>
-          <form onSubmit={sendMessage}>
+          <div>
+            <h3>Messages</h3>
+            <ul>
+              {messages.map((msg, index) => (
+                <li key={index}><strong>{msg.user}:</strong> {msg.message}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p>{typingStatus}</p>
             <input
               type="text"
+              placeholder="Type a message"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="border p-2 mr-2"
+              onChange={handleTyping}
             />
-            <button type="submit" className="bg-green-500 text-white p-2 rounded">
-              Send
-            </button>
-          </form>
-        </div>
+            <button onClick={handleMessageSend}>Send</button>
+          </div>
+        </>
       )}
     </div>
   );
-};
-
-export default Chat;
+}
