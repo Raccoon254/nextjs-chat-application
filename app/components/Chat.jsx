@@ -71,6 +71,15 @@ export default function Home() {
         }
     };
 
+    function setSelectedUserHelper(user){
+        setSelectedUser(user);
+        setTypingStatus("");
+        // Clear messages
+        setMessages([]);
+        // Fetch messages between the two users
+        socket.emit("fetchMessages", {recipientId: user.id, senderId: socket.id});
+    }
+
     return (
         <div className="container bg-gray-50 rounded-lg mx-auto p-4">
             <p className="text-center">Status: {isConnected ? "connected" : "disconnected"}</p>
@@ -96,7 +105,7 @@ export default function Home() {
                                     {onlineUsers.map((user) => (
                                         <div key={user.id}
                                             className={`cursor-pointer transition-all ring-2 ring-gray-100 rounded-lg p-2 px-3 ${selectedUser?.id === user.id ? 'bg-blue-200' : 'bg-blue-50'}`}
-                                            onClick={() => setSelectedUser(user)}>
+                                            onClick={() => setSelectedUserHelper(user)}>
                                             <img src={`https://api.dicebear.com/9.x/identicon/svg?seed=${user.name}`}
                                                 alt={user.name}
                                                 className="w-6 h-6 rounded-full inline-block mr-2"
