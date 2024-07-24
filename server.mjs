@@ -52,6 +52,9 @@ app.prepare().then(() => {
                     return (message.sender === currentUser.name && message.recipient === recipientId) ||
                         (message.sender === recipientId && message.recipient === currentUser.name);
                 });
+
+                // Send the messages to the client
+                socket.emit("fetchedMessages", conversation || []);
             }
         });
 

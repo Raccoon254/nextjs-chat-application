@@ -39,6 +39,9 @@ export default function Home() {
         socket.on("typing", ({user, isTyping}) => {
             setTypingStatus(isTyping ? `${user} is typing...` : "");
         });
+        socket.on("fetchedMessages", (fetchedMessages) => {
+            setMessages(fetchedMessages);
+        });
 
         return () => {
             socket.off("connect", onConnect);
