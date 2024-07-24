@@ -7,6 +7,7 @@ const hostname = "localhost";
 const port = 3000;
 const app = next({dev, hostname, port});
 const handler = app.getRequestHandler();
+let messages = [];
 
 const users = new Map();
 
@@ -33,9 +34,26 @@ app.prepare().then(() => {
         socket.on("privateMessage", ({recipientId, message}) => {
             if (currentUser && recipientId) {
                 io.to(recipientId).emit("privateMessage", {user: currentUser.name, message});
+
+                // Save the message to a list of messages
+                // This is a placeholder for a real implementation
+                // In a real app, you would save the message to a database
+                messages.push({sender: currentUser.name, recipient: recipientId, message});
             }
         });
 
+        //function to fetch messages between two users
+        socket.on("fetchMessages", ({recipientId, senderId}) => {
+            if (currentUser && recipientId) {
+                // Fetch messages between the two users
+                // This is a placeholder for a real implementation
+                // In a real app, you would query a database
+                const conversation = messages.filter((message) => {
+                    return (message.sender === currentUser.name && message.recipient === recipientId) ||
+                        (message.sender === recipientId && message.recipient === currentUser.name);
+                });
+            }
+        });
 
         socket.on("disconnect", () => {
             users.delete(socket.id);
