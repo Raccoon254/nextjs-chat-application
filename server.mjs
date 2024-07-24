@@ -1,11 +1,11 @@
-import {createServer} from "node:http";
+import { createServer } from "node:http";
 import next from "next";
-import {Server} from "socket.io";
+import { Server } from "socket.io";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = 3000;
-const app = next({dev, hostname, port});
+const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 let messages = [];
 
@@ -20,40 +20,43 @@ app.prepare().then(() => {
         let currentUser = null;
 
         socket.on("join", (name) => {
-            currentUser = {name, id: socket.id};
+            currentUser = { name, id: socket.id };
             users.set(socket.id, currentUser);
             io.emit("onlineUsers", Array.from(users.values()));
         });
 
-        socket.on("typing", ({recipientId, isTyping}) => {
+        socket.on("typing", ({ recipientId, isTyping }) => {
             if (currentUser && recipientId) {
-                io.to(recipientId).emit("typing", {user: currentUser.name, isTyping});
+                io.to(recipientId).emit("typing", { user: currentUser.name, isTyping });
             }
         });
 
-        socket.on("privateMessage", ({recipientId, message}) => {
+        socket.on("privateMessage", ({ recipientId, message }) => {
             if (currentUser && recipientId) {
-                io.to(recipientId).emit("privateMessage", {user: currentUser.name, message});
+                const messageObject = {
+                    sender: currentUser.name,
+                    senderId: currentUser.id,
+                    recipient: users.get(recipientId).name,
+                    recipientId: recipientId,
+                    message: message,
+                    timestamp: new Date().toISOString()
+                };
 
-                // Save the message to a list of messages
-                // This is a placeholder for a real implementation
-                // In a real app, you would save the message to a database
-                messages.push({sender: currentUser.name, recipient: recipientId, message});
+                io.to(recipientId).emit("privateMessage", messageObject);
+                socket.emit("privateMessage", messageObject);
+
+                // Save the message
+                messages.push(messageObject);
             }
         });
 
-        //function to fetch messages between two users
-        socket.on("fetchMessages", ({recipientId, senderId}) => {
+        socket.on("fetchMessages", ({ recipientId }) => {
             if (currentUser && recipientId) {
-                // Fetch messages between the two users
-                // This is a placeholder for a real implementation
-                // In a real app, you would query a database
                 const conversation = messages.filter((message) => {
-                    return (message.sender === currentUser.name && message.recipient === recipientId) ||
-                        (message.sender === recipientId && message.recipient === currentUser.name);
+                    return (message.senderId === currentUser.id && message.recipientId === recipientId) ||
+                        (message.senderId === recipientId && message.recipientId === currentUser.id);
                 });
 
-                // Send the messages to the client
                 socket.emit("fetchedMessages", conversation || []);
             }
         });
